@@ -43,7 +43,7 @@ def force_text(s, encoding='utf-8', errors='strict', ):
                 raise MailUnicodeDecodeError(s, *e.args)
             else:
                 s = ' '.join([force_text(arg, encoding, errors) for arg in s])
-        except:
+        except UnicodeDecodeError as e:
             raise MailUnicodeDecodeError(s, *e.args)
 
     return s
@@ -110,9 +110,6 @@ def _has_newline(line):
     if line and ('\r' in line or '\n' in line):
         return True
     return False
-
-
-
 
 
 class Attachment:
