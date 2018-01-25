@@ -11,22 +11,14 @@ from email.mime.text import MIMEText
 from email.header import Header
 from email.utils import formatdate, formataddr, make_msgid, parseaddr
 
-from apistar import Settings
+from apistar import Settings, Component
 
 from .exc import MailUnicodeDecodeError, BadHeaderError
 
-# TODO Figure out why this is necessary
 charset.add_charset('utf-8', charset.SHORTEST, None, 'utf-8')
 
 
-# TODO ok there is something going here that you may not really grok yet. check
 def force_text(s, encoding='utf-8', errors='strict', ):
-    """
-    Similar to smart_text, except that lazy instances are resolved to
-    strings, rather than kept as lazy objects.
-
-    If strings_only is True, don't convert (some) non-string-like objects.
-    """
     if isinstance(s, str):
         return s
 
@@ -47,25 +39,6 @@ def force_text(s, encoding='utf-8', errors='strict', ):
             raise MailUnicodeDecodeError(s, *e.args)
 
     return s
-
-    # try:
-    #     if not isinstance(s, string_types):
-    #         if PY3:
-    #             if isinstance(s, bytes):
-    #                 s = text_type(s, encoding, errors)
-    #             else:
-    #                 s = text_type(s)
-    #         elif hasattr(s, '__unicode__'):
-    #             s = s.__unicode__()
-    #         else:
-    #             s = text_type(bytes(s), encoding, errors)
-    #     else:
-    #         s = s.decode(encoding, errors)
-    # except UnicodeDecodeError as e:
-    #     if not isinstance(s, Exception):
-    #         raise FlaskMailUnicodeDecodeError(s, *e.args)
-
-    # return s
 
 
 def sanitize_subject(subject, encoding='utf-8'):
@@ -119,6 +92,7 @@ class Attachment:
     :param content_type: file mimetype
     :param data: the raw file data
     :param disposition: content-disposition (if any)
+    :param headers: additional headers. Useful when HTML emails reference attached images
     """
 
     def __init__(self, filename=None, content_type=None, data=None,
@@ -148,6 +122,8 @@ class Message:
     :param extra_headers: A dictionary of additional headers for the message
     :param mail_options: A list of ESMTP options to be used in MAIL FROM command
     :param rcpt_options:  A list of ESMTP options to be used in RCPT commands
+    :param ascii_attachments: A boolean used to force attachment file names to ascii
+
     """
 
     def __init__(self, subject='',
@@ -164,7 +140,8 @@ class Message:
                  charset=None,
                  extra_headers=None,
                  mail_options=None,
-                 rcpt_options=None):
+                 rcpt_options=None,
+                 ascii_attachments=False):
 
         if isinstance(sender, tuple):
             sender = "{} <{}>".format(*sender)
@@ -185,6 +162,7 @@ class Message:
         self.mail_options = mail_options or []
         self.rcpt_options = rcpt_options or []
         self.attachments = attachments or []
+        self.ascii_attachments = ascii_attachments
 
     @property
     def send_to(self):
@@ -210,7 +188,6 @@ class Message:
 
     def _message(self):
         """Creates the email"""
-        ascii_attachments = None  # current_app.extensions['mail'].ascii_attachments # What does this do?
         encoding = self.charset or 'utf-8'
 
         attachments = self.attachments or []
@@ -258,7 +235,7 @@ class Message:
             encode_base64(f)
 
             filename = attachment.filename
-            if filename and ascii_attachments:
+            if filename and self.ascii_attachments:
                 # force filename to ascii
                 filename = unicodedata.normalize('NFKD', filename)
                 filename = filename.encode('ascii', 'ignore').decode('ascii')
@@ -266,7 +243,7 @@ class Message:
 
             try:
                 filename and filename.encode('ascii')
-            # TODO Figure out why this is needed.
+
             except UnicodeEncodeError:
                 filename = ('UTF8', '', filename)
 
@@ -279,12 +256,10 @@ class Message:
 
             msg.attach(f)
 
-        # TODO FIGURE out why this was needed for PY3 in the original package
         msg.policy = policy.SMTP
 
         return msg
 
-    # TODO Figure out if this is needed anymore
     def as_string(self):
         return self._message().as_string()
 
@@ -320,12 +295,6 @@ class Message:
                         return True
         return False
 
-    def is_bad_headers(self):
-        from warnings import warn
-        msg = 'is_bad_headers is deprecated, use the new has_bad_headers method instead.'
-        warn(DeprecationWarning(msg), stacklevel=1)
-        return self.has_bad_headers()
-
     def send(self, connection):
         """Verifies and sends the message."""
 
@@ -351,6 +320,8 @@ class Message:
         :param content_type: file mimetype
         :param data: the raw file data
         :param disposition: content-disposition (if any)
+        :param headers: additional headers. Useful when HTML emails reference attached images
+
         """
         self.attachments.append(
             Attachment(filename, content_type, data, disposition, headers))
@@ -359,16 +330,16 @@ class Message:
 class Connection:
     """Handles connection to host"""
 
-    def __init__(self, mailer):
+    def __init__(self, mail):
         """
         configure new connection
 
-        :param mailer: the application mail manager
+        :param mail: the application mail manager
         """
-        self.mailer = mailer
+        self.mail = mail
 
     def __enter__(self):
-        if self.mailer.mail_suppress_send:
+        if self.mail.mail_suppress_send:
             self.host = None
         else:
             self.host = self.configure_host()
@@ -382,17 +353,17 @@ class Connection:
             self.host.quit()
 
     def configure_host(self):
-        if self.mailer.mail_use_ssl:
-            host = smtplib.SMTP_SSL(self.mailer.mail_server, self.mailer.mail_port)
+        if self.mail.mail_use_ssl:
+            host = smtplib.SMTP_SSL(self.mail.mail_server, self.mail.mail_port)
         else:
-            host = smtplib.SMTP(self.mailer.mail_server, self.mailer.mail_port)
+            host = smtplib.SMTP(self.mail.mail_server, self.mail.mail_port)
 
-        host.set_debuglevel(int(self.mailer.mail_debug))
+        host.set_debuglevel(int(self.mail.mail_debug))
 
-        if self.mailer.mail_use_tls:
+        if self.mail.mail_use_tls:
             host.starttls()
-        if self.mailer.mail_user and self.mailer.mail_password:
-            host.login(self.mailer.mail_user, self.mailer.mail_password)
+        if self.mail.mail_user and self.mail.mail_password:
+            host.login(self.mail.mail_user, self.mail.mail_password)
 
         return host
 
@@ -414,6 +385,9 @@ class Connection:
         if message.date is None:
             message.date = time.time()
 
+        if not message.ascii_attachments and self.mail.mail_ascii_attachments:
+            message.ascii_attachments = True
+
         if self.host:
             self.host.sendmail(sanitize_address(envelope_from or message.sender),
                                list(sanitize_addresses(message.send_to)),
@@ -423,7 +397,7 @@ class Connection:
 
             self.num_emails += 1
 
-            if self.num_emails == self.mailer.mail_max_emails:
+            if self.num_emails == self.mail.mail_max_emails:
                 self.num_emails = 0
                 if self.host:
                     self.host.quit()
@@ -438,17 +412,17 @@ class Connection:
         self.send(Message(*args, **kwargs))
 
 
-class Mailer:
+class Mail:
     """Manages email messaging"""
 
     def __init__(self, settings: Settings):
         """
-        Configure a new Mailer
+        Configure a new Mail manager
 
         Args:
         settings: The application settings dictionary
         """
-        mail_config = settings.get('EMAIL')
+        mail_config = settings.get('MAIL')
         self.mail_server = mail_config.get('MAIL_SERVER')
         self.mail_user = mail_config.get('MAIL_USERNAME')
         self.mail_password = mail_config.get('MAIL_PASSWORD')
@@ -475,8 +449,16 @@ class Mailer:
             message.send(connection)
 
     def send_message(self, *args, **kwargs):
+        """Shortcut for send(msg).
+
+        Takes same arguments as Message constructor.
+        """
+
         self.send(Message(*args, **kwargs))
 
     def connect(self):
         """Opens a connection to the mail host."""
         return Connection(self)
+
+
+mail_component = Component(Mail, preload=True)
