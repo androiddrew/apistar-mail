@@ -38,7 +38,6 @@ app = App(
     routes=routes,
     components=components
 )
-
 ```
 
 ### Sending Messages
@@ -51,9 +50,37 @@ from apistar_mail import Mail, Message
 def send_a_message(mail:Mail):
     msg = Message('Hello',
                   sender='drew@example.com'
-                  recipients=[you@example.com])
+                  recipients=['you@example.com'])
     mail.send(msg)
     return
 ```
 
+Your message recipients can be set in bulk or individually:
 
+```
+msg.recipients = ['you@example.com', 'me@example.com']
+msg.add_recipient('otherperson@example.com')
+```
+
+If you have set MAIL_DEFAULT_SENDER you don’t need to set the message sender explicitly, as it will use this configuration value by default:
+
+```
+msg = Message('Hello',
+              recipients=['you@example.com'])
+```
+
+The sender can also be passed as a two element tuple containing a name and email address which will be split like so:
+
+```
+msg = Message('Hello',
+              sender=('Me', 'me@example.com'))
+
+assert msg.sender == 'Me <me@example.com>'
+```
+
+A Message can contain a body and/or HTML:
+
+```
+msg.body = 'message body'
+msg.html = '<b>Hello apistar_mail!</b>'
+```
