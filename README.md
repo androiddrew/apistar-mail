@@ -12,7 +12,7 @@
 
 ### Setup
 
-To send mail messages from your view functions you must include the `MAIL` dictionary in your settings and the mail_componet in.
+To send mail messages from your view functions you must include the `MAIL` dictionary in your settings and the mail_component in your component list.
 
 ```
 from apistar import WSGIApp as App
