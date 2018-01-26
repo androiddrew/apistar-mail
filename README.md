@@ -62,7 +62,7 @@ msg.recipients = ['you@example.com', 'me@example.com']
 msg.add_recipient('otherperson@example.com')
 ```
 
-If you have set MAIL_DEFAULT_SENDER you don’t need to set the message sender explicitly, as it will use this configuration value by default:
+If you have set `MAIL_DEFAULT_SENDER` you don’t need to set the message sender explicitly, as it will use this configuration value by default:
 
 ```
 msg = Message('Hello',
@@ -85,7 +85,7 @@ msg.body = 'message body'
 msg.html = '<b>Hello apistar_mail!</b>'
 ```
 
-## Testing
+### Testing
 
 To run the test suite with coverage first install the package in editable mode with it's testing requirements:
 
