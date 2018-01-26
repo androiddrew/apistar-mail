@@ -1,0 +1,3 @@
+[run]
+source = apistar_mail
+omit = test*

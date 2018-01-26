@@ -1,10 +1,10 @@
-from apistar_mail.mail import Message, Mailer, force_text
+from apistar_mail.mail import Message, Mail, force_text
 from apistar_mail.exc import MailUnicodeDecodeError
 
 import pytest
 
 settings = {
-    'EMAIL': {
+    'MAIL': {
         'MAIL_SERVER': 'smtp.example.com',
         'MAIL_USERNAME': 'fake@example.com',
         'MAIL_PASSWORD': 'secret',

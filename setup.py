@@ -10,13 +10,10 @@ requirements = [
     'apistar',
 ]
 
-setup_requirements = [
-    'pytest-runner',
-]
-
 test_requirements = [
     'pytest',
-    'coverage',
+    'pytest-cov',
+    'tox'
 ]
 
 setup(
@@ -38,11 +35,10 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
-    test_suite='tests',
-    tests_require=test_requirements,
-    setup_requires=setup_requirements,
+    extras_require={
+        'testing': test_requirements,
+    }
 )

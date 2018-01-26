@@ -84,3 +84,17 @@ A Message can contain a body and/or HTML:
 msg.body = 'message body'
 msg.html = '<b>Hello apistar_mail!</b>'
 ```
+
+## Testing
+
+To run the test suite with coverage first install the package in editable mode with it's testing requirements:
+
+`pip install -e ".[testing]"`
+
+To run the project's tests
+
+`pytest --cov`
+
+To run tests against multiple python interpreters use:
+
+`tox`
