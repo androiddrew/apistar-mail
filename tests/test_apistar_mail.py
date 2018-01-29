@@ -4,7 +4,7 @@ import re
 import time
 from smtplib import SMTP
 from unittest.mock import patch, MagicMock
-from apistar_mail.mail import Message, Mail, force_text, sanitize_address, Connection
+from apistar_mail.mail import Message, Mail, force_text, sanitize_address
 from apistar_mail.exc import MailUnicodeDecodeError, BadHeaderError
 
 import pytest
@@ -22,13 +22,19 @@ settings = {
 }
 
 
+def test_force_text_with_bytes_type():
+    s = b'This is a bytes string'
+    result = force_text(s)
+    assert isinstance(result, str)
+
+
 def test_sanitize_address_with_unicode_name():
     s = "ünicron <to@example.com>"
     result = sanitize_address(s)
     assert '=?utf-8?q?=C3=BCnicron?=' in result
 
 
-def test_sanitize_address_with_unicode_name():
+def test_sanitize_address_with_unicode_localpart():
     s = "me <ünicron@example.com>"
     result = sanitize_address(s)
     assert '=?utf-8?q?=C3=BCnicron?=' in result
@@ -338,8 +344,9 @@ def test_message_charset():
                   subject="subject",
                   recipients=["foo@bar.com"])
     msg.html = None
-    msg.attach(data=b"foobar", content_type='text/csv')
+    msg.attach(data=b"foobar", content_type='text/csv', headers={'X-Extra-Header': 'Yes'})
     assert 'Content-Type: text/plain; charset="utf-8"' in msg.as_string()
+    assert 'X-Extra-Header' in msg.as_string()
 
     # unicode sender as tuple
     msg = Message(sender=("送信者", "from@example.com"),
@@ -412,7 +419,9 @@ def test_message_default_sender():
 def test_mail_send_message():
     mail = Mail(settings)
     mail.send = MagicMock()
-    mail.send_message(sender="from@example.com", recipients=["foo@bar.com"], body="normal ascii text")
+    mail.send_message(sender="from@example.com",
+                      recipients=["foo@bar.com"],
+                      body="normal ascii text")
     assert mail.send.has_been_called()
 
 
@@ -455,7 +464,7 @@ def test_connection_configure_host_ssl(mock_smtp_ssl):
     mail.mail_use_tls = False
     mail.mail_use_ssl = True
     mock_smtp_ssl.return_value = MagicMock()
-    with mail.connect() as conn:
+    with mail.connect() as conn:  # NOQA
         mock_smtp_ssl.assert_called_with(mail.mail_server, mail.mail_port)
 
 
@@ -463,7 +472,9 @@ def test_connection_send_message():
     mail = Mail(settings)
     with mail.connect() as conn:
         conn.send = MagicMock()
-        conn.send_message(sender="from@example.com", recipients=["foo@bar.com"], body="normal ascii text")
+        conn.send_message(sender="from@example.com",
+                          recipients=["foo@bar.com"],
+                          body="normal ascii text")
         assert conn.send.has_been_called()
 
 
