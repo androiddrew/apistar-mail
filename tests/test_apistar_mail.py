@@ -2,8 +2,10 @@ import base64
 import email
 import re
 import time
-from apistar_mail.mail import Message, Mail, force_text, sanitize_address
-from apistar_mail.exc import MailUnicodeDecodeError
+from smtplib import SMTP
+from unittest.mock import patch, MagicMock
+from apistar_mail.mail import Message, Mail, force_text, sanitize_address, Connection
+from apistar_mail.exc import MailUnicodeDecodeError, BadHeaderError
 
 import pytest
 
@@ -18,6 +20,19 @@ settings = {
         'MAIL_DEFAULT_SENDER': 'fake@example.com'
     }
 }
+
+
+def test_sanitize_address_with_unicode_name():
+    s = "ünicron <to@example.com>"
+    result = sanitize_address(s)
+    assert '=?utf-8?q?=C3=BCnicron?=' in result
+
+
+def test_sanitize_address_with_unicode_name():
+    s = "me <ünicron@example.com>"
+    result = sanitize_address(s)
+    assert '=?utf-8?q?=C3=BCnicron?=' in result
+
 
 # Message
 
@@ -281,7 +296,7 @@ def test_extra_headers():
                   recipients=["to@example.com"],
                   body="hello",
                   extra_headers={'X-Extra-Header': 'Yes'})
-    assert 'X-Extra-Header: Yes' in  msg.as_string()
+    assert 'X-Extra-Header: Yes' in msg.as_string()
 
 
 def test_message_charset():
@@ -384,3 +399,201 @@ def test_empty_subject_header():
     msg.body = "normal ascii text"
     mail.send(msg)
     assert 'Subject:' not in msg.as_string()
+
+
+def test_message_default_sender():
+    msg = Message(recipients=["foo@bar.com"])
+    msg.body = "normal ascii text"
+    mail = Mail(settings)
+    mail.send(msg)
+    assert msg.sender == 'fake@example.com'
+
+
+def test_mail_send_message():
+    mail = Mail(settings)
+    mail.send = MagicMock()
+    mail.send_message(sender="from@example.com", recipients=["foo@bar.com"], body="normal ascii text")
+    assert mail.send.has_been_called()
+
+
+def test_message_ascii_attachments_config():
+    mail = Mail(settings)
+    mail.mail_ascii_attachments = True
+    msg = Message(sender="from@example.com",
+                  subject="subject",
+                  recipients=["foo@bar.com"])
+    mail.send(msg)
+    assert msg.ascii_attachments
+
+
+def test_message_as_bytes():
+    msg = Message(sender="from@example.com",
+                  recipients=["foo@bar.com"])
+    msg.body = "normal ascii text"
+    assert bytes(msg) == msg.as_bytes()
+
+
+# Connection
+
+
+@patch('apistar_mail.mail.smtplib.SMTP')
+def test_connection_configure_host_non_ssl(mock_smtp):
+    mail = Mail(settings)
+    mail.mail_suppress_send = False
+    mail.mail_use_tls = True
+    mock_smtp.return_value = MagicMock()
+    mock_smtp.return_value.starttls.return_value = None
+    with mail.connect() as conn:
+        mock_smtp.assert_called_with(mail.mail_server, mail.mail_port)
+        assert conn.host.starttls.called
+
+
+@patch('apistar_mail.mail.smtplib.SMTP_SSL')
+def test_connection_configure_host_ssl(mock_smtp_ssl):
+    mail = Mail(settings)
+    mail.mail_suppress_send = False
+    mail.mail_use_tls = False
+    mail.mail_use_ssl = True
+    mock_smtp_ssl.return_value = MagicMock()
+    with mail.connect() as conn:
+        mock_smtp_ssl.assert_called_with(mail.mail_server, mail.mail_port)
+
+
+def test_connection_send_message():
+    mail = Mail(settings)
+    with mail.connect() as conn:
+        conn.send = MagicMock()
+        conn.send_message(sender="from@example.com", recipients=["foo@bar.com"], body="normal ascii text")
+        assert conn.send.has_been_called()
+
+
+@patch('apistar_mail.mail.smtplib.SMTP')
+def test_connection_send_single(mock_smtp):
+    mail = Mail(settings)
+    mail.mail_suppress_send = False
+    msg = Message(sender="from@example.com",
+                  recipients=["foo@bar.com"],
+                  body="normal ascii text")
+    mock_smtp.return_value = MagicMock(spec=SMTP)
+    with mail.connect() as conn:
+        conn.send(msg)
+        host = conn.host
+        host.sendmail.assert_called_with(msg.sender, msg.recipients, msg.as_bytes(),
+                                         msg.mail_options, msg.rcpt_options)
+
+
+def test_connection_send_ascii_recipient_single():
+    mail = Mail(settings)
+    msg = Message(sender="from@example.com",
+                  recipients=["foo@bar.com"],
+                  body="normal ascii text")
+    with mail.connect() as conn:
+        with patch.object(conn, 'host') as host:
+            conn.send(msg)
+            host.sendmail.assert_called_once_with(msg.sender, msg.recipients, msg.as_bytes(),
+                                                  msg.mail_options, msg.rcpt_options)
+
+
+def test_connection_send_non_ascii_recipient_single():
+    mail = Mail(settings)
+    with mail.connect() as conn:
+        with patch.object(conn, 'host') as host:
+            msg = Message(subject="testing",
+                          sender="from@example.com",
+                          recipients=[u'ÄÜÖ → ✓ <to@example.com>'],
+                          body="testing")
+            conn.send(msg)
+
+            host.sendmail.assert_called_once_with(
+                "from@example.com",
+                ["=?utf-8?b?w4TDnMOWIOKGkiDinJM=?= <to@example.com>"],
+                msg.as_bytes(),
+                msg.mail_options,
+                msg.rcpt_options
+            )
+
+
+@patch('apistar_mail.mail.smtplib.SMTP')
+def test_connection_send_many(mock_smtp):
+    mail = Mail(settings)
+    mail.mail_suppress_send = False
+    mail.mail_max_emails = 50
+    mock_smtp.return_value = MagicMock(spec=SMTP)
+    with mail.connect() as conn:
+        host = conn.host
+        conn.configure_host = MagicMock()
+        conn.configure_host.return_value = None
+        for i in range(100):
+            msg = Message(sender="from@example.com",
+                          recipients=["foo@bar.com"],
+                          body="normal ascii text")
+
+            conn.send(msg)
+        assert host.quit.called
+        assert conn.configure_host.called
+
+
+def test_bad_header_subject():
+    mail = Mail(settings)
+    msg = Message(subject="testing\r\n",
+                  body="testing",
+                  recipients=["to@example.com"])
+
+    with pytest.raises(BadHeaderError):
+        mail.send(msg)
+
+
+def test_bad_header_subject_whitespace():
+    mail = Mail(settings)
+    msg = Message(subject="\t\r\n",
+                  body="testing",
+                  recipients=["to@example.com"])
+
+    with pytest.raises(BadHeaderError):
+        mail.send(msg)
+
+
+def test_bad_header_subject_with_no_trailing_whitespace():
+    """
+    Exercises line `if linenum > 0 and line[0] not in '\t ':`
+
+    This is a bit of a strange test but we aren't changing the bad_header check from flask_mail
+    """
+    mail = Mail(settings)
+    msg = Message(subject="testing\r\ntesting",
+                  body="testing",
+                  recipients=["to@example.com"])
+
+    with pytest.raises(BadHeaderError):
+        mail.send(msg)
+
+
+def test_bad_header_subject_trailing_whitespace():
+    mail = Mail(settings)
+    msg = Message(subject="testing\r\n\t",
+                  body="testing",
+                  recipients=["to@example.com"])
+
+    with pytest.raises(BadHeaderError):
+        mail.send(msg)
+
+
+def test_bad_header_with_a_newline():
+    mail = Mail(settings)
+    msg = Message(subject="\ntesting\r\ntesting",
+                  body="testing",
+                  recipients=["to@example.com"])
+
+    with pytest.raises(BadHeaderError):
+        mail.send(msg)
+
+
+def test_bad_header_with_newline_in_sender():
+    mail = Mail(settings)
+    msg = Message(subject="testing",
+                  body="testing",
+                  sender='me\n@example.com',
+                  recipients=["to@example.com"])
+
+    with pytest.raises(BadHeaderError):
+        mail.send(msg)

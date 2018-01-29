@@ -1,3 +1,6 @@
 [run]
 source = apistar_mail
 omit = test*
+
+[report]
+show_missing = True
