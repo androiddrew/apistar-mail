@@ -28,9 +28,9 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     license='BSD',
-    keywords='apistar_mail',
+    keywords='apistar_mail mail SMTP',
     classifiers=[
-        'Development Status :: 1 - Pre-Alpha',
+        'Development Status :: 2 - Pre-Alpha',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
