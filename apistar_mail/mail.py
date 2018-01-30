@@ -423,7 +423,7 @@ class Mail:
         settings: The application settings dictionary
         """
         mail_config = settings.get('MAIL')
-        self.mail_server = mail_config.get('MAIL_SERVER')
+        self.mail_server = mail_config.get('MAIL_SERVER', 'localhost')
         self.mail_user = mail_config.get('MAIL_USERNAME')
         self.mail_password = mail_config.get('MAIL_PASSWORD')
         self.mail_port = mail_config.get('MAIL_PORT', 25)
