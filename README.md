@@ -1,5 +1,4 @@
 # apistar-mail
----
 
 Provides a simple interface to set up SMTP with your [APIStar](https://github.com/encode/apistar) application and send messages from your view functions. Please note this work derives largely from the [Flask-Mail](https://github.com/mattupstate/flask-mail) extension by 'Dan Jacob' and contributors, but has been modified extensively to remove Python 2 support and be used as an APIStar component.
 
@@ -12,7 +11,7 @@ Provides a simple interface to set up SMTP with your [APIStar](https://github.co
 
 ### Example Setup
 
-To send mail messages from your view functions you must include the `MAIL` dictionary in your settings, the mail_component in your component list, and the Mail component as a dependency in your view. Here we have a minimally viable app capable of sending an email message and returning a 204 response code:
+To send mail messages from your view functions you must include the 'MAIL' dictionary in your settings, the mail_component in your component list, and the Mail component as a dependency in your view. Here we have a minimally viable app capable of sending an email message and returning a 204 response code:
 
 ```python
 from apistar import Route
