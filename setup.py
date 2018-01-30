@@ -17,7 +17,7 @@ test_requirements = [
 ]
 
 setup(
-    name='apistar_mail',
+    name='apistar-mail',
     version='0.2.0',
     description="A simple email Component for APIStar",
     long_description=readme + '\n\n' + history,
@@ -28,7 +28,7 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     license='BSD',
-    keywords='apistar_mail mail SMTP',
+    keywords='apistar-mail apistar_mail mail SMTP',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Web Environment',
