@@ -1,5 +1,7 @@
 # apistar-mail
 
+[![PyPI](https://img.shields.io/pypi/v/apistar-mail.svg)](https://pypi.org/project/apistar-mail/)
+[![PyPI](https://img.shields.io/pypi/pyversions/apistar-mail.svg)](https://pypi.org/project/apistar-mail/)
 [![Build Status](https://travis-ci.org/androiddrew/apistar-mail.svg?branch=master)](https://travis-ci.org/androiddrew/apistar-mail)
 [![codecov](https://codecov.io/gh/androiddrew/apistar-mail/branch/master/graph/badge.svg)](https://codecov.io/gh/androiddrew/apistar-mail)
 
