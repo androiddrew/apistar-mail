@@ -1,6 +1,7 @@
 # apistar-mail
 
 [![Build Status](https://travis-ci.org/androiddrew/apistar-mail.svg?branch=master)](https://travis-ci.org/androiddrew/apistar-mail)
+[![codecov](https://codecov.io/gh/androiddrew/apistar-mail/branch/master/graph/badge.svg)](https://codecov.io/gh/androiddrew/apistar-mail)
 
 
 Provides a simple interface to set up SMTP with your [APIStar](https://github.com/encode/apistar) application and send messages from your view functions. Please note this work derives largely from the [Flask-Mail](https://github.com/mattupstate/flask-mail) extension by 'Dan Jacob' and contributors, but has been modified extensively to remove Python 2 support and be used as an APIStar component.
