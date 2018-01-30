@@ -18,7 +18,7 @@ test_requirements = [
 
 setup(
     name='apistar_mail',
-    version='0.1.1',
+    version='0.2.0',
     description="A simple email Component for APIStar",
     long_description=readme + '\n\n' + history,
     author="Drew Bednar",
