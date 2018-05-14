@@ -17,22 +17,19 @@ Provides a simple interface to set up SMTP with your [APIStar](https://github.co
 
 ### Example Setup
 
-To send mail messages from your view functions you must include the 'MAIL' dictionary in your settings, the mail_component in your component list, and the Mail component as a dependency in your view. Here we have a minimally viable app capable of sending an email message and returning a 204 response code:
+To send mail messages from your view functions you must include a dictionary of mail options to the `MailComponent. Here we have a minimally viable app capable of sending an email message and returning a 204 response code:
 
 ```python
-from apistar import Route
-from apistar.frameworks.wsgi import WSGIApp as App
-from apistar_mail import mail_component, Mail, Message
+from apistar import App, Route
+from apistar_mail import MailComponent, Mail, Message
 
-settings = {
-    'MAIL': {
-        'MAIL_SERVER': 'smtp.example.com',
-        'MAIL_USERNAME': 'me@example.com',
-        'MAIL_PASSWORD': 'dontcommitthistoversioncontrol',
-        'MAIL_PORT': 587,
-        'MAIL_USE_TLS': True,
-        'MAIL_DEFAULT_SENDER': 'me@example.com'
-    }
+mail_options = {
+    'MAIL_SERVER': 'smtp.example.com',
+    'MAIL_USERNAME': 'me@example.com',
+    'MAIL_PASSWORD': 'dontcommitthistoversioncontrol',
+    'MAIL_PORT': 587,
+    'MAIL_USE_TLS': True,
+    'MAIL_DEFAULT_SENDER': 'me@example.com'
 }
 
 
@@ -49,17 +46,16 @@ routes = [
 ]
 
 components = [
-    mail_component
+    MailComponent(**mail_options)
 ]
 
 app = App(
-    settings=settings,
     routes=routes,
     components=components
 )
 
 if __name__ == '__main__':
-    app.main()
+    app.serve('127.0.0.1', 5000, debug=True)
 
 ```
 

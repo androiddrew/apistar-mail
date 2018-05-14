@@ -7,7 +7,7 @@ with open('HISTORY.md') as history_file:
     history = history_file.read()
 
 requirements = [
-    'apistar~=0.3.9',
+    'apistar>=0.4',
 ]
 
 test_requirements = [
@@ -21,6 +21,7 @@ setup(
     version='0.2.1',
     description="A simple email Component for APIStar",
     long_description=readme + '\n\n' + history,
+    long_description_content_type='text/markdown',
     author="Drew Bednar",
     author_email='drew@androiddrew.com',
     url='https://github.com/androiddrew/apistar-mail',

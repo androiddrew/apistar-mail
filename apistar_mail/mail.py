@@ -11,7 +11,7 @@ from email.mime.text import MIMEText
 from email.header import Header
 from email.utils import formatdate, formataddr, make_msgid, parseaddr
 
-from apistar import Settings, Component
+from apistar import Component
 
 from .exc import MailUnicodeDecodeError, BadHeaderError
 
@@ -415,25 +415,25 @@ class Connection:
 class Mail:
     """Manages email messaging"""
 
-    def __init__(self, settings: Settings):
+    def __init__(self, **mail_options):
         """
         Configure a new Mail manager
 
         Args:
-        settings: The application settings dictionary
+        mail_options: A components setting dictionary
         """
-        mail_config = settings.get('MAIL')
-        self.mail_server = mail_config.get('MAIL_SERVER', 'localhost')
-        self.mail_user = mail_config.get('MAIL_USERNAME')
-        self.mail_password = mail_config.get('MAIL_PASSWORD')
-        self.mail_port = mail_config.get('MAIL_PORT', 25)
-        self.mail_use_tls = mail_config.get('MAIL_USE_TLS', False)
-        self.mail_use_ssl = mail_config.get('MAIL_USE_SSL', False)
-        self.mail_default_sender = mail_config.get('MAIL_DEFAULT_SENDER')
-        self.mail_debug = mail_config.get('MAIL_DEBUG', False)
-        self.mail_max_emails = mail_config.get('MAIL_MAX_EMAILS')
-        self.mail_suppress_send = mail_config.get('MAIL_SUPPRESS_SEND', False)
-        self.mail_ascii_attachments = mail_config.get('MAIL_ASCII_ATTACHMENTS', False)
+
+        self.mail_server = mail_options.get('MAIL_SERVER', 'localhost')
+        self.mail_user = mail_options.get('MAIL_USERNAME')
+        self.mail_password = mail_options.get('MAIL_PASSWORD')
+        self.mail_port = mail_options.get('MAIL_PORT', 25)
+        self.mail_use_tls = mail_options.get('MAIL_USE_TLS', False)
+        self.mail_use_ssl = mail_options.get('MAIL_USE_SSL', False)
+        self.mail_default_sender = mail_options.get('MAIL_DEFAULT_SENDER')
+        self.mail_debug = mail_options.get('MAIL_DEBUG', False)
+        self.mail_max_emails = mail_options.get('MAIL_MAX_EMAILS')
+        self.mail_suppress_send = mail_options.get('MAIL_SUPPRESS_SEND', False)
+        self.mail_ascii_attachments = mail_options.get('MAIL_ASCII_ATTACHMENTS', False)
 
     def send(self, message):
         """
@@ -461,4 +461,11 @@ class Mail:
         return Connection(self)
 
 
-mail_component = Component(Mail, preload=True)
+class MailComponent(Component):
+    """A component that injects an instance of `Mail` for sending emails"""
+
+    def __init__(self, **mail_options) -> None:
+        self.mail = Mail(**mail_options)
+
+    def resolve(self) -> Mail:
+        return self.mail
