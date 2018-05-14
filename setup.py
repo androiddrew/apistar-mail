@@ -7,7 +7,7 @@ with open('HISTORY.md') as history_file:
     history = history_file.read()
 
 requirements = [
-    'apistar',
+    'apistar~=0.3.9',
 ]
 
 test_requirements = [
