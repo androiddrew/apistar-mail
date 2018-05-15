@@ -17,10 +17,11 @@ Provides a simple interface to set up SMTP with your [APIStar](https://github.co
 
 ### Example Setup
 
-To send mail messages from your view functions you must include a dictionary of mail options to the `MailComponent. Here we have a minimally viable app capable of sending an email message and returning a 204 response code:
+To send mail messages from your view functions you must include a dictionary of mail options to the `MailComponent`. Here we have a minimally viable app capable of sending an email message and returning a 204 response code:
 
 ```python
 from apistar import App, Route
+from apistar.http import Response
 from apistar_mail import MailComponent, Mail, Message
 
 mail_options = {
@@ -34,11 +35,11 @@ mail_options = {
 
 
 def send_a_message(mail: Mail):
-    msg = Message('Hello',
-                  sender='me@example.com',
+    msg = Message(subject='Hello',
+                  body='Welcome to APIStar!',
                   recipients=['you@example.com'])
     mail.send(msg)
-    return
+    return Response('', 204)
 
 
 routes = [
